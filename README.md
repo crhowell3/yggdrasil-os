@@ -42,7 +42,14 @@ A very, very small but functional operating system.
 TODO
 
 ## 🔰 Getting Started
-TODO
+
+### Build dependencies
+
+The following tools are required for building the OS image from source:
+
+- make
+- mtools (mcopy)
+- nasm
 
 <p align="center">
   Copyright &copy; 2025-present
