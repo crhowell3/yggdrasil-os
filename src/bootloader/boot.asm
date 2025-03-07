@@ -31,19 +31,19 @@ bits 16
 jmp short start
 nop
 
-bdb_oem:                   db 'MSWIN4.1'        ; 8 bytes
-bdb_bytes_per_sector:      dw 512
-bdb_sectors_per_cluter:    db 1
-bdb_reserved_sectors:      dw 1
-bdb_fat_count:             db 2
-bdb_dir_entries_count:     dw 0E0h
-bdb_total_sectors:         dw 2880
-bdb_media_descriptor_type: db 0F0h              ; 2880 * 512 = 1.44 MB
-bdb_sectors_per_fat:       dw 9                 ; 0xF0 = 3.5" floppy disk
-bdb_sectors_per_track:     dw 18                ; 9 sectors/FAT
-bdb_heads:                 dw 2
-bdb_hidden_sectors:        dd 0
-bdb_large_sector_count:    dd 0
+bdb_oem:                    db 'MSWIN4.1'           ; 8 bytes
+bdb_bytes_per_sector:       dw 512
+bdb_sectors_per_cluter:     db 1
+bdb_reserved_sectors:       dw 1
+bdb_fat_count:              db 2
+bdb_dir_entries_count:      dw 0E0h
+bdb_total_sectors:          dw 2880
+bdb_media_descriptor_type:  db 0F0h                 ; 2880 * 512 = 1.44 MB
+bdb_sectors_per_fat:        dw 9                    ; 0xF0 = 3.5" floppy disk
+bdb_sectors_per_track:      dw 18                   ; 9 sectors/FAT
+bdb_heads:                  dw 2
+bdb_hidden_sectors:         dd 0
+bdb_large_sector_count:     dd 0
 
 ; EXTENDED BOOT RECORD
 ;
@@ -56,12 +56,12 @@ bdb_large_sector_count:    dd 0
 ; 0x03E:  Boot code (448 bytes)
 ; 0x1FE:  Bootable partition signature (0xAA55)
 
-ebr_drive_number:          db 0                 ; floppy drive ID
-                           db 0                 ; reserved
-ebr_signature:             db 29h
-ebr_volume_id:             db 10h, 20h, 30h, 40h
-ebr_volume_label:          db 'YGGDRASIL  '     ; 11 bytes with padding
-ebr_system_id:             db 'FAT12   '        ; 8 bytes with padding
+ebr_drive_number:           db 0                    ; floppy drive ID
+                            db 0                    ; reserved
+ebr_signature:              db 29h
+ebr_volume_id:              db 10h, 20h, 30h, 40h
+ebr_volume_label:           db 'YGGDRASIL  '        ; 11 bytes with padding
+ebr_system_id:              db 'FAT12   '           ; 8 bytes with padding
 
 ; =========
 ; Boot Code
@@ -107,14 +107,36 @@ main:
     mov ss, ax
     mov sp, 0x7C00
 
+    mov [ebr_drive_number], dl
+
+    mov ax, 1
+    mov cl, 1
+    mov bx, 0x7E00
+    call disk_read
+
     ; Print string to terminal
     mov si, startup_msg
     call puts
 
     hlt
 
+; ==============
+; Error handling
+; ==============
+
+floppy_error:
+    mov si, message_read_fail
+    call puts
+    jmp wait_key_and_reboot
+
+wait_key_and_reboot:
+    mov ah, 0
+    int 16h                                 ; Interrupt code for waiting for user keypress
+    jmp 0FFFFh:0                            ; This jumps to the beginning of the BIOS to initiate reboot
+
 .halt:
-    jmp .halt
+    cli
+    hlt
 
 ; =============
 ; Disk routines
@@ -154,7 +176,73 @@ lba_to_chs:
     pop ax
     ret
 
-startup_msg: db 'WELCOME TO YGGDRASIL OS', ENDL, 0
+;
+; Read sectors from a disk
+; Parameters:
+;   - ax: LBA address
+;   - cl: Number of sectors to read
+;   - dl: Drive number
+;   - es:bx: Memory address where the data will be stored
+;
+disk_read:
+    push ax
+    push bx
+    push cx
+    push dx
+    push di
+
+    push cx                             ; temporarily save cl
+    call lba_to_chs                     ; compute CHS position
+    pop ax                              ; al is the number of sectors to read
+
+    mov ah, 02h                         ; reading may not work first time
+    mov di, 3                           ; number of times to retry
+
+.retry:
+    pusha                               ; save all registers
+    stc                                 ; manually set carry flag
+    int 13h                             ; carry flag cleared indicates success
+    jnc .done
+
+    ; Execute this if read fails
+    popa
+    call disk_reset
+
+    dec di
+    test di, di
+    jnz .retry
+
+.fail:
+    ; Jump and halt because it is assumed that the disk cannot be read from
+    ; since all attempts have been exhausted
+    jmp floppy_error
+
+.done:
+    popa
+
+    push di
+    push dx
+    push cx
+    push bx
+    push ax
+    ret
+
+;
+; Reset the disk controller
+; Parameters:
+;   - dl: Drive number
+;
+disk_reset:
+    pusha
+    mov ah, 0
+    stc
+    int 13h
+    jc floppy_error
+    popa
+    ret
+
+startup_msg:                db 'WELCOME TO YGGDRASIL OS', ENDL, 0
+message_read_fail:          db '[ERR] Unable to read from disk', ENDL, 0
 
 times 510-($-$$) db 0
 dw 0AA55h

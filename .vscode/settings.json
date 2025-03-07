@@ -1,0 +1,7 @@
+{
+    "makefile.configureOnOpen": false,
+    "[makefile]": {
+        "editor.insertSpaces": false,
+        "editor.detectIndentation": false
+    }
+}
