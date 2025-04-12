@@ -1,12 +1,17 @@
 # Using nasm assembler to create the machine code for the image
 ASM=nasm
+# GCC compiler for C code
+CC=gcc
 
 # Root directory of assembly source code
 SRC_DIR=src
+TOOLS_DIR=tools
 # Location for build output files
 BUILD_DIR=build
 
-.PHONY: all floppy_image kernel bootloader clean always
+.PHONY: all floppy_image kernel bootloader clean always floppy_image tools_fat
+
+all: floppy_image tools_fat
 
 #
 # Floppy image
@@ -42,15 +47,23 @@ $(BUILD_DIR)/kernel.bin: always
 	$(ASM) $(SRC_DIR)/kernel/main.asm -f bin -o $(BUILD_DIR)/kernel.bin
 
 #
+# Tools
+#
+tools_fat: $(BUILD_DIR)/tools/fat
+$(BUILD_DIR)/tools/fat: always $(TOOLS_DIR)/fat/fat.c
+	mkdir -p $(BUILD_DIR)/tools
+	$(CC) -g -o $(BUILD_DIR)/tools/fat $(TOOLS_DIR)/fat/fat.c
+
+#
 # Always
 #
 always:
     # Always attempt to create build directory to ensure it exists
-	mkdir -p ${BUILD_DIR}
+	mkdir -p $(BUILD_DIR)
 
 #
 # Clean
 #
 clean:
     # Force remove all files in build directory to perform clean build
-	rm -rf ${BUILD_DIR}/*
+	rm -rf $(BUILD_DIR)/*
