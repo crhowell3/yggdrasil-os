@@ -1,2 +1,18 @@
 ---
+Language: Cpp
+BasedOnStyle: Google
+AccessModifierOffset: -1
+AlignAfterOpenBracket: Align
+AlignArrayOfStructures: None
+AlignConsecutiveMacros: None
+AlignConsecutiveAssignments: None
+AlignConsecutiveBitFields: None
+AlignConsecutiveDeclarations: None
+AlignEscapedNewlines: Left
+AlignOperands: Align
+AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+PointerAlignment: Left
+ReferenceAlignment: Pointer
 ColumnLimit: 80
