@@ -1,11 +1,18 @@
-org 0x7C00
+org 0x0
 bits 16
 
 
 %define ENDL 0x0D, 0x0A
 
 start:
-    jmp main
+
+    ; Print string to terminal
+    mov si, msg_hello
+    call puts
+
+.halt:
+    cli
+    hlt
 
 ;
 ; Prints a string to terminal
@@ -15,6 +22,7 @@ start:
 puts:
     push si
     push ax
+    push bx
 
 .loop:
     lodsb
@@ -28,29 +36,10 @@ puts:
     jmp .loop
 
 .done:
+    pop bx
     pop ax
     pop si
     ret
-
-main:
-
-    ; Data segments
-    mov ax, 0
-    mov ds, ax
-    mov es, ax
-
-    ; Stack memory initialized at start of OS
-    mov ss, ax
-    mov sp, 0x7C00    
-
-    ; Print string to terminal
-    mov si, msg_hello
-    call puts
-
-    hlt
-
-.halt:
-    jmp .halt
 
 
 msg_hello: db 'Hello, world!', ENDL, 0
