@@ -59,6 +59,147 @@ _x86_Video_WriteCharTeletype:
 
     pop bx
 
+    ; Restore old call frame
+    mov sp, bp
+    pop bp
+    ret
+;
+; bool _cdecl x86_Disk_Reset(uint8_t drive);
+;
+global _x86_Disk_Reset
+_x86_Disk_Reset:
+
+    ; Make new call frame
+    push bp
+    mov bp, sp
+
+    mov ah, 0
+    mov dl, [bp + 4]
+    stc
+    int 13h
+
+    mov ax, 1
+    sbb ax, 0
+
+    ; Restore old call frame
+    mov sp, bp
+    pop bp
+    ret
+;
+; bool _cdecl x86_Disk_Read(uint8_t drive,
+;                           uint16_t cylinder,
+;                           uint16_t head,
+;                           uint16_t sector,
+;                           uint8_t count,
+;                           uint8_t far* data_out);
+;
+global _x86_Disk_Read
+_x86_Disk_Read:
+
+    ; Make new call frame
+    push bp
+    mov bp, sp
+
+    ; Save modified registers
+    push bx
+    push es
+
+    ; Set up arguments
+    mov dl, [bp + 4]    ; dl - Drive number
+
+    mov ch, [bp + 6]    ; ch - Cylinder (lower 8 bits)
+    mov cl, [bp + 7]    ; cl - Cylinder to bits 6-7
+    shl cl, 6
+
+    mov dh, [bp + 8]    ; dh - Head
+
+    mov al, [bp + 10]   ; cl - Sector to bits 0-5
+    and al, 3Fh
+    or cl, al
+
+    mov al, [bp + 12]   ; al - Count
+
+    mov bx, [bp + 16]   ; es:bx - Far pointer to data out
+    mov es, bx
+    mov bx, [bp + 14]
+
+    ; Call interrupt 13h
+    mov ah, 02h
+    stc
+    int 13h
+
+    ; Set return value
+    mov ax, 1
+    sbb ax, 0
+
+    ; Restore registers
+    pop es
+    pop bx
+
+    ; Restore old call frame
+    mov sp, bp
+    pop bp
+    ret
+
+;
+; bool _cdecl x86_Disk_GetDriveParams(uint8_t drive,
+;                                     uint8_t* drive_type_out,
+;                                     uint16_t* cylinders_out,
+;                                     uint16_t* sectors_out,
+;                                     uint16_t* heads_out);
+;
+global _x86_Disk_GetDriveParams
+_x86_Disk_GetDriveParams:
+
+    ; Make new call frame
+    push bp             ; Save old call frame
+    mov bp, sp          ; Initialize new call frame
+
+    ; Save registers
+    push es
+    push bx
+    push si
+    push di
+
+    mov dl, [bp + 4]
+    mov ah, 08h
+    mov di, 0
+    mov es, di
+
+    ; Call interrupt 13h
+    stc
+    int 13h
+
+    ; Return value
+    mov ax, 1
+    sbb ax, 0
+
+    ; Out parameters
+    mov si, [bp + 6]    ; drive type from bl
+    mov [si], bl
+
+    mov bl, ch          ; cylinders - lower bits in ch
+    mov bh, cl          ; cylinders - upper bits in cl (6-7)
+    shr bh, 6
+    mov si, [bp + 8]
+    mov [si], bx
+
+    xor ch, ch          ; sectors - lower 5 bits in cl
+    and cl, 3Fh
+    mov si, [bp + 10]
+    mov [si], cx
+
+    mov cl, dh          ; heads - dh
+    mov si, [bp + 12]
+    mov [si], cx
+
+    ; Restore registers
+    pop di
+    pop si
+    pop bx
+    pop es
+
+    ; Restore old call frame
     mov sp, bp
     pop bp
     ret
