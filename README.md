@@ -36,9 +36,11 @@
 &nbsp;
 
 ## 💭 About
+
 A very, very small but functional operating system.
 
 ## 📕 Documentation
+
 TODO
 
 ## 🔰 Getting Started
@@ -50,6 +52,9 @@ The following tools are required for building the OS image from source:
 - make
 - mtools (mcopy)
 - nasm
+- gcc
+- wcc (Watcom)
+- wlink (Watcom)
 
 <p align="center">
   Copyright &copy; 2025-present
@@ -61,5 +66,3 @@ The following tools are required for building the OS image from source:
       src="https://img.shields.io/static/v1.svg?style=for-the-badge&label=License&message=MIT&logoColor=d9e0ee&colorA=282a36&colorB=b16286"
   /></a>
 </p>
-
-
