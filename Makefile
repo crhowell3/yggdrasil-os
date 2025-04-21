@@ -2,6 +2,8 @@
 ASM=nasm
 # GCC compiler for C code
 CC=gcc
+CC16=/usr/bin/watcom/binl/wcc
+LD16=/usr/bin/watcom/binl/wlink
 
 # Root directory of assembly source code
 SRC_DIR=src
@@ -24,19 +26,26 @@ $(BUILD_DIR)/main_floppy.img: bootloader kernel
     # Create FAT12 file system with a default label that will be overwritten
 	mkfs.fat -F 12 -n "YGOS" $(BUILD_DIR)/main_floppy.img
     # Put bootloader into first sector of the disk with no truncation
-	dd if=$(BUILD_DIR)/bootloader.bin of=$(BUILD_DIR)/main_floppy.img conv=notrunc
+	dd if=$(BUILD_DIR)/stage1.bin of=$(BUILD_DIR)/main_floppy.img conv=notrunc
     # Copy files to image without needing to mount
+	mcopy -i $(BUILD_DIR)/main_floppy.img $(BUILD_DIR)/stage2.bin "::stage2.bin"
 	mcopy -i $(BUILD_DIR)/main_floppy.img $(BUILD_DIR)/kernel.bin "::kernel.bin"
 	mcopy -i $(BUILD_DIR)/main_floppy.img test.txt "::test.txt"
 
 #
 # Bootloader
 #
-bootloader: $(BUILD_DIR)/bootloader.bin
+bootloader: stage1 stage2
 
-$(BUILD_DIR)/bootloader.bin: always
-	# Create bootloader binary code from assembly
-	$(ASM) $(SRC_DIR)/bootloader/boot.asm -f bin -o $(BUILD_DIR)/bootloader.bin
+stage1: $(BUILD_DIR)/stage1.bin
+
+$(BUILD_DIR)/stage1.bin: always
+	$(MAKE) -C $(SRC_DIR)/bootloader/stage1 BUILD_DIR=$(abspath $(BUILD_DIR))
+
+stage2: $(BUILD_DIR)/stage2.bin
+
+$(BUILD_DIR)/stage2.bin: always
+	$(MAKE) -C $(SRC_DIR)/bootloader/stage2 BUILD_DIR=$(abspath $(BUILD_DIR))
 
 #
 # Kernel
@@ -45,7 +54,7 @@ kernel: $(BUILD_DIR)/kernel.bin
 
 $(BUILD_DIR)/kernel.bin: always
     # Create kernel binary code from assembly
-	$(ASM) $(SRC_DIR)/kernel/main.asm -f bin -o $(BUILD_DIR)/kernel.bin
+	$(MAKE) -C $(SRC_DIR)/kernel BUILD_DIR=$(abspath $(BUILD_DIR))
 
 #
 # Tools
@@ -67,4 +76,7 @@ always:
 #
 clean:
     # Force remove all files in build directory to perform clean build
+	$(MAKE) -C $(SRC_DIR)/bootloader/stage1 BUILD_DIR=$(abspath $(BUILD_DIR)) clean
+	$(MAKE) -C $(SRC_DIR)/bootloader/stage2 BUILD_DIR=$(abspath $(BUILD_DIR)) clean
+	$(MAKE) -C $(SRC_DIR)/kernel BUILD_DIR=$(abspath $(BUILD_DIR)) clean
 	rm -rf $(BUILD_DIR)/*
