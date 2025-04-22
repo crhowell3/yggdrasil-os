@@ -3,6 +3,37 @@ bits 16
 section _TEXT class=CODE
 
 ;
+; U4D
+;
+; Operation:      Unsigned 4 byte divide
+; Inputs:         DX;AX   Dividend
+;                 CX;BX   Divisor
+; Outputs:        DX;AX   Quotient
+;                 CX;BX   Remainder
+; Volatile:       none
+;
+global __U4D
+__U4D:
+    shl edx, 16         ; dx to upper half of edx
+    mov dx, ax          ; edx - dividend
+    mov eax, edx        ; eax - dividend
+    xor edx, edx
+
+    shl ecx, 16         ; cx to upper half of ecx
+    mov cx, bx          ; ecx - divisor
+
+    div ecx             ; eax - quot, edx - remainder
+    mov ebx, edx
+    mov ecx, edx
+    shr ecx, 16
+
+    mov edx, eax
+    shr edx, 16
+
+    ret
+
+
+;
 ; void _cdecl x86_div64_32(uint64_t dividend, uint32_t divisor, uint64_t* quotient_out, uint32_t* remainder_out);
 ;
 global _x86_div64_32
@@ -111,9 +142,9 @@ _x86_Disk_Read:
     mov cl, [bp + 7]    ; cl - Cylinder to bits 6-7
     shl cl, 6
 
-    mov dh, [bp + 8]    ; dh - Head
+    mov dh, [bp + 10]   ; dh - Head
 
-    mov al, [bp + 10]   ; cl - Sector to bits 0-5
+    mov al, [bp + 8]    ; cl - Sector to bits 0-5
     and al, 3Fh
     or cl, al
 
