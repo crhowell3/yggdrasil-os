@@ -27,7 +27,7 @@ MaxEmptyLinesToKeep: 1
 Cpp11BracedListStyle: false
 AlignTrailingComments: true
 ReflowComments: true
-
+TypeNames: ['far', '_cdecl']
 SpacesBeforeTrailingComments: 2
 IncludeBlocks: Regroup
 IncludeCategories:

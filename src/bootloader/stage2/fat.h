@@ -1,45 +1,48 @@
 #pragma once
-#include "stdint.h"
 #include "disk.h"
+#include "stdint.h"
 
 #pragma pack(push, 1)
 
 typedef struct {
-    uint8_t Name[11];
-    uint8_t Attributes;
-    uint8_t _Reserved;
-    uint8_t CreatedTimeTenths;
-    uint16_t CreatedTime;
-    uint16_t CreatedDate;
-    uint16_t AccessedDate;
-    uint16_t FirstClusterHigh;
-    uint16_t ModifiedTime;
-    uint16_t ModifiedDate;
-    uint16_t FirstClusterLow;
-    uint32_t Size;
-} FAT_DirectoryEntry;
+    uint8_t name[11];
+    uint8_t attributes;
+    uint8_t _reserved;
+    uint8_t created_time_tenths;
+    uint16_t created_time;
+    uint16_t created_date;
+    uint16_t accessed_date;
+    uint16_t first_cluster_high;
+    uint16_t modified_time;
+    uint16_t modified_date;
+    uint16_t first_cluster_low;
+    uint32_t size;
+} FATDirectoryEntry;
 
 #pragma pack(pop)
 
 typedef struct {
-    int Handle;
-    bool IsDirectory;
-    uint32_t Position;
-    uint32_t Size;
-} FAT_File;
+    int handle;
+    bool is_directory;
+    uint32_t position;
+    uint32_t size;
+} FATFile;
 
-enum FAT_Attributes {
-    FAT_ATTRIBUTE_READ_ONLY         = 0x01,
-    FAT_ATTRIBUTE_HIDDEN            = 0x02,
-    FAT_ATTRIBUTE_SYSTEM            = 0x04,
-    FAT_ATTRIBUTE_VOLUME_ID         = 0x08,
-    FAT_ATTRIBUTE_DIRECTORY         = 0x10,
-    FAT_ATTRIBUTE_ARCHIVE           = 0x20,
-    FAT_ATTRIBUTE_LFN               = FAT_ATTRIBUTE_READ_ONLY | FAT_ATTRIBUTE_HIDDEN | FAT_ATTRIBUTE_SYSTEM | FAT_ATTRIBUTE_VOLUME_ID | FAT_ATTRIBUTE_DIRECTORY | FAT_ATTRIBUTE_ARCHIVE,
+enum FATAttributes {
+    kFatAttributeReadOnly = 0x01,
+    kFatAttributeHidden = 0x02,
+    kFatAttributeSystem = 0x04,
+    kFatAttributeVolumeId = 0x08,
+    kFatAttributeDirectory = 0x10,
+    kFatAttributeArchive = 0x20,
+    kFatAttributeLFN = kFatAttributeReadOnly | kFatAttributeHidden |
+                       kFatAttributeSystem | kFatAttributeVolumeId |
+                       kFatAttributeDirectory | kFatAttributeArchive,
 };
 
-bool FAT_Initialize(DISK* disk);
-FAT_File far* FAT_Open(DISK* disk, const char* path);
-uint32_t FAT_Read(DISK* disk, FAT_File far* file, uint32_t byte_count, void* data_out);
-bool FAT_ReadEntry(DISK* disk, FAT_File far* file, FAT_DirectoryEntry* dir_entry);
-void FAT_Close(FAT_File far* file)
+bool FATInitialize(DISK *disk);
+FATFile far *FATOpen(DISK *disk, const char *path);
+uint32_t FATRead(DISK *disk, FATFile far *file, uint32_t byte_count,
+                 void *data_out);
+bool FATReadEntry(DISK *disk, FATFile far *file, FATDirectoryEntry *dir_entry);
+void FATClose(FATFile far *file)
