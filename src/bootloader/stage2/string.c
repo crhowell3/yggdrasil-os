@@ -37,3 +37,13 @@ char* strcpy(char* dst, const char* src) {
     *dst = '\0';
     return original_dst;
 }
+
+unsigned strlen(const char* str) {
+    unsigned len = 0;
+    while (*str) {
+        ++len;
+        ++str;
+    }
+
+    return len;
+}
