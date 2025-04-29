@@ -1,6 +1,6 @@
 #pragma once
 #include "disk.h"
-#include "stdint.h"
+#include <stdint.h>
 
 #pragma pack(push, 1)
 
@@ -41,8 +41,8 @@ enum FATAttributes {
 };
 
 bool FATInitialize(DISK *disk);
-FATFile far *FATOpen(DISK *disk, const char *path);
-uint32_t FATRead(DISK *disk, FATFile far *file, uint32_t byte_count,
+FATFile *FATOpen(DISK *disk, const char *path);
+uint32_t FATRead(DISK *disk, FATFile *file, uint32_t byte_count,
                  void *data_out);
-bool FATReadEntry(DISK *disk, FATFile far *file, FATDirectoryEntry *dir_entry);
-void FATClose(FATFile far *file);
+bool FATReadEntry(DISK *disk, FATFile *file, FATDirectoryEntry *dir_entry);
+void FATClose(FATFile *file);

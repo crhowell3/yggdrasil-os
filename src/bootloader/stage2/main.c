@@ -1,9 +1,18 @@
 #include "disk.h"
 #include "fat.h"
-#include "stdint.h"
+#include "memdefs.h"
+#include "memory.h"
 #include "stdio.h"
+#include <stdint.h>
 
-void _cdecl cstart_(uint16_t boot_drive) {
+uint8_t *KernelLoadBuffer = (uint8_t *)MEMORY_LOAD_KERNEL;
+uint8_t *Kernel = (uint8_t *)MEMORY_KERNEL_ADDR;
+
+typedef void (*KernelStart)();
+
+void __attribute__((cdecl)) start(uint16_t boot_drive) {
+  clrscr();
+
   DISK disk;
   if (!DISKInitialize(&disk, boot_drive)) {
     printf("Disk init error\r\n");
@@ -16,31 +25,19 @@ void _cdecl cstart_(uint16_t boot_drive) {
   }
 
   // Browse files in root
-  FATFile far *fd = FATOpen(&disk, "/");
-  FATDirectoryEntry entry;
-  int i = 0;
-  while (FATReadEntry(&disk, fd, &entry) && i++ < 5) {
-    printf("  ");
-    for (int i = 0; i < 11; i++) {
-      putc(entry.name[i]);
-    }
-    printf("\r\n");
+  FATFile *fd = FATOpen(&disk, "/");
+  uint32_t read;
+  uint8_t *kernel_buffer = Kernel;
+  while ((read = FATRead(&disk, fd, MEMORY_LOAD_SIZE, KernelLoadBuffer))) {
+    memcpy(kernel_buffer, KernelLoadBuffer, read);
+    kernel_buffer += read;
   }
+
   FATClose(fd);
 
-  // Read test.txt file
-  char buffer[100];
-  uint32_t read;
-  fd = FATOpen(&disk, "mydir/test.txt");
-  while ((read = FATRead(&disk, fd, sizeof(buffer), buffer))) {
-    for (uint32_t i = 0; i < read; i++) {
-      if (buffer[i] == '\n') {
-        putc('\r');
-      }
-      putc(buffer[i]);
-    }
-  }
-  FATClose(fd);
+  // Execute the kernel
+  KernelStart kernel_start = (KernelStart)Kernel;
+  kernel_start();
 
 end:
   for (;;)
