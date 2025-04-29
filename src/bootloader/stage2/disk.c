@@ -13,9 +13,9 @@ bool DISKInitialize(DISK *disk, uint8_t drive_number)
     }
 
     disk->id = drive_number;
-    disk->cylinders = cylinders;
+    disk->cylinders = cylinders + 1;
     disk->sectors = sectors;
-    disk->heads = heads;
+    disk->heads = heads + 1;
 
     return true;
 }

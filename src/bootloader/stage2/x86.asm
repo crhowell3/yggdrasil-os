@@ -32,6 +32,28 @@ __U4D:
 
     ret
 
+;
+; U4M
+; Operation:      integer four byte multiply
+; Inputs:         DX;AX   integer M1
+;                 CX;BX   integer M2
+; Outputs:        DX;AX   product
+; Volatile:       CX, BX destroyed
+;
+global __U4M
+__U4M:
+    shl edx, 16
+    mov dx, ax
+    mov eax, edx
+
+    shl ecx, 16
+    mov cx, bx
+
+    mul ecx
+    mov edx, eax
+    shr edx, 16
+
+    ret
 
 ;
 ; void _cdecl x86_div64_32(uint64_t dividend, uint32_t divisor, uint64_t* quotient_out, uint32_t* remainder_out);

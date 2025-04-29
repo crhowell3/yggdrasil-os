@@ -1,12 +1,48 @@
+#include "disk.h"
+#include "fat.h"
 #include "stdint.h"
 #include "stdio.h"
 
 void _cdecl cstart_(uint16_t boot_drive) {
-    const char far* far_str = "far string";
+  DISK disk;
+  if (!DISKInitialize(&disk, boot_drive)) {
+    printf("Disk init error\r\n");
+    goto end;
+  }
 
-    puts("Hello world!\r\n");
-    printf("Formatted %% %c %s %ls\r\n", 'a', "string", far_str);
-    printf("Formatted %d %i %x %p %o %hd %hi %hhu %hhd\r\n", 1234, -5678, 0xdead, 0xbeef, 012345, (short)27, (short)-42, (unsigned char)20, (signed char)-10);
-    printf("Formatted %ld %lx %lld %llx\r\n", -100000000l, 0xdeadbeeful, 10200300400ll, 0xdeadbeeffeebdaedull);
-    for(;;);
+  if (!FATInitialize(&disk)) {
+    printf("FAT init error\r\n");
+    goto end;
+  }
+
+  // Browse files in root
+  FATFile far *fd = FATOpen(&disk, "/");
+  FATDirectoryEntry entry;
+  int i = 0;
+  while (FATReadEntry(&disk, fd, &entry) && i++ < 5) {
+    printf("  ");
+    for (int i = 0; i < 11; i++) {
+      putc(entry.name[i]);
+    }
+    printf("\r\n");
+  }
+  FATClose(fd);
+
+  // Read test.txt file
+  char buffer[100];
+  uint32_t read;
+  fd = FATOpen(&disk, "mydir/test.txt");
+  while ((read = FATRead(&disk, fd, sizeof(buffer), buffer))) {
+    for (uint32_t i = 0; i < read; i++) {
+      if (buffer[i] == '\n') {
+        putc('\r');
+      }
+      putc(buffer[i]);
+    }
+  }
+  FATClose(fd);
+
+end:
+  for (;;)
+    ;
 }

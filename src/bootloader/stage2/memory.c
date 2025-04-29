@@ -1,12 +1,14 @@
 #include "memory.h"
 
-int memcpy(void far *dst, const void far *src, uint16_t num) {
+void far* memcpy(void far *dst, const void far *src, uint16_t num) {
   uint8_t far *u8_dst = (uint8_t far *)dst;
   const uint8_t far *u8_src = (const uint8_t far *)src;
 
   for (uint16_t i = 0; i < num; i++) {
     u8_dst[i] = u8_src[i];
   }
+
+  return dst;
 }
 
 void far *memset(void far *ptr, int value, uint16_t num) {

@@ -60,7 +60,7 @@ ebr_drive_number:           db 0                    ; floppy drive ID
                             db 0                    ; reserved
 ebr_signature:              db 29h
 ebr_volume_id:              db 10h, 20h, 30h, 40h
-ebr_volume_label:           db 'YGGDRASIL  '        ; 11 bytes with padding
+ebr_volume_label:           db 'PICOS      '        ; 11 bytes with padding
 ebr_system_id:              db 'FAT12   '           ; 8 bytes with padding
 
 ; =========

@@ -37,7 +37,7 @@ enum FATAttributes {
   kFatAttributeArchive = 0x20,
   kFatAttributeLFN = kFatAttributeReadOnly | kFatAttributeHidden |
                      kFatAttributeSystem | kFatAttributeVolumeId |
-                     kFatAttributeDirectory | kFatAttributeArchive,
+                     kFatAttributeDirectory | kFatAttributeArchive
 };
 
 bool FATInitialize(DISK *disk);
@@ -45,4 +45,4 @@ FATFile far *FATOpen(DISK *disk, const char *path);
 uint32_t FATRead(DISK *disk, FATFile far *file, uint32_t byte_count,
                  void *data_out);
 bool FATReadEntry(DISK *disk, FATFile far *file, FATDirectoryEntry *dir_entry);
-void FATClose(FATFile far *file)
+void FATClose(FATFile far *file);

@@ -1,4 +1,5 @@
 #pragma once
+#include "stdint.h"
 
 void putc(char c);                          // NOLINT
 void puts(const char* str);                 // NOLINT

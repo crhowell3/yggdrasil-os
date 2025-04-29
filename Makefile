@@ -24,13 +24,15 @@ $(BUILD_DIR)/main_floppy.img: bootloader kernel
     # Create empty 1.44 MB file
 	dd if=/dev/zero of=$(BUILD_DIR)/main_floppy.img bs=512 count=2880
     # Create FAT12 file system with a default label that will be overwritten
-	mkfs.fat -F 12 -n "YGOS" $(BUILD_DIR)/main_floppy.img
+	mkfs.fat -F 12 -n "PICO" $(BUILD_DIR)/main_floppy.img
     # Put bootloader into first sector of the disk with no truncation
 	dd if=$(BUILD_DIR)/stage1.bin of=$(BUILD_DIR)/main_floppy.img conv=notrunc
     # Copy files to image without needing to mount
 	mcopy -i $(BUILD_DIR)/main_floppy.img $(BUILD_DIR)/stage2.bin "::stage2.bin"
 	mcopy -i $(BUILD_DIR)/main_floppy.img $(BUILD_DIR)/kernel.bin "::kernel.bin"
 	mcopy -i $(BUILD_DIR)/main_floppy.img test.txt "::test.txt"
+	mmd -i $(BUILD_DIR)/main_floppy.img "::mydir"
+	mcopy -i $(BUILD_DIR)/main_floppy.img test.txt "::mydir/test.txt"
 
 #
 # Bootloader
