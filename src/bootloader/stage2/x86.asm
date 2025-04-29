@@ -84,7 +84,7 @@ x86_Disk_GetDriveParams:
     ; Save registers
     push es
     push bx
-    push si
+    push esi
     push di
 
     ; Call interrupt int13h

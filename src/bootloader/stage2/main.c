@@ -25,7 +25,7 @@ void __attribute__((cdecl)) start(uint16_t boot_drive) {
   }
 
   // Browse files in root
-  FATFile *fd = FATOpen(&disk, "/");
+  FATFile *fd = FATOpen(&disk, "/kernel.bin");
   uint32_t read;
   uint8_t *kernel_buffer = Kernel;
   while ((read = FATRead(&disk, fd, MEMORY_LOAD_SIZE, KernelLoadBuffer))) {

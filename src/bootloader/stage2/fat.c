@@ -201,7 +201,8 @@ uint32_t FATRead(DISK *disk, FATFile *file, uint32_t byte_count,
   uint8_t *u8_data_out = (uint8_t *)data_out;
 
   // Don't read past the end of the file
-  if (!fd->public.is_directory) {
+  if (!fd->public.is_directory ||
+      (fd->public.is_directory && fd->public.size != 0)) {
     byte_count = min(byte_count, fd->public.size - fd->public.position);
   }
 
