@@ -37,7 +37,7 @@
 
 ## 💭 About
 
-A very, very small but functional operating system.
+A very, very small operating system.
 
 ## 📕 Documentation
 
@@ -45,16 +45,55 @@ TODO
 
 ## 🔰 Getting Started
 
-### Build dependencies
+### Prerequisites
+
+#### Build dependencies
 
 The following tools are required for building the OS image from source:
 
-- make
-- mtools (mcopy)
-- nasm
-- gcc
-- wcc (Watcom)
-- wlink (Watcom)
+- `make`
+- `nasm`
+- `mtools`
+- gcc cross compiler dependencies (see Building section)
+
+#### Testing and debugging dependencies
+
+These utilities are optional and are for testing and debugging purposes only:
+
+- `qemu-system-x86`
+- `bochs-x`
+- `bochsbios`
+- `vgabios`
+
+### Building
+
+1. Install dependencies with your package manager:
+
+Ubuntu / Debian:
+
+```shell
+sudo apt install build-essential bison flex libgmp3-dev libmpc-dev libmpfr-dev \
+                 texinfo nasm mtools qemu-system-x86
+```
+
+Fedora:
+
+```shell
+sudo apt install gcc gcc-c++ make bison flex gmp-devel libmpc-devel mpfr-devel \
+                 texinfo nasm mtools qemu-system-x86
+```
+
+1. Build the required tools with `make toolchain`.
+
+1. Finally, run `make`.
+
+### Running
+
+With `qemu` installed, simply execute the provided `run.sh` script.
+
+### Debugging
+
+With `bochs` installed, simply execute the provided `debug.sh` script.
 
 <p align="center">
   Copyright &copy; 2025-present

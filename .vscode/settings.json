@@ -1,7 +1,6 @@
 {
-    "makefile.configureOnOpen": false,
-    "[makefile]": {
-        "editor.insertSpaces": false,
-        "editor.detectIndentation": false
+    "files.associations": {
+        "x86.h": "c",
+        "stdio.h": "c"
     }
 }
