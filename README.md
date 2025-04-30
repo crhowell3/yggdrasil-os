@@ -83,9 +83,9 @@ sudo apt install gcc gcc-c++ make bison flex gmp-devel libmpc-devel mpfr-devel \
                  texinfo nasm mtools qemu-system-x86
 ```
 
-1. Build the required tools with `make toolchain`.
+2. Build the required tools with `make toolchain`.
 
-1. Finally, run `make`.
+3. Finally, run `make`.
 
 ### Running
 
