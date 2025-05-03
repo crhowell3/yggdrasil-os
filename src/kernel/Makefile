@@ -4,12 +4,10 @@ TARGET_LIBS += -lgcc
 TARGET_LINKFLAGS += -T linker.ld -nostdlib
 
 HEADERS_C 	= $(shell find . -type f -name "*.h")
-SOURCES_C 	= $(shell find . -type f -name "*.c") \
-			  arch/i686/isrs_gen.c
+SOURCES_C 	= $(shell find . -type f -name "*.c")
 OBJECTS_C 	= $(patsubst %.c, $(BUILD_DIR)/kernel/c/%.obj, $(SOURCES_C))
 
-HEADERS_ASM = $(shell find . -type f -name "*.inc") \
-			  arch/i686/isrs_gen.inc
+HEADERS_ASM = $(shell find . -type f -name "*.inc")
 SOURCES_ASM = $(shell find . -type f -name "*.asm")
 OBJECTS_ASM = $(patsubst %.asm, $(BUILD_DIR)/kernel/asm/%.obj, $(SOURCES_ASM))
 
@@ -23,12 +21,12 @@ $(BUILD_DIR)/kernel.bin: $(OBJECTS_ASM) $(OBJECTS_C)
 	@$(TARGET_LD) $(TARGET_LINKFLAGS) -Wl,-Map=$(BUILD_DIR)/kernel.map -o $@ $^ $(TARGET_LIBS)
 	@echo "--> Created: kernel.bin"
 
-$(BUILD_DIR)/kernel/c/%.obj: %.c $(HEADERS_C)
+$(BUILD_DIR)/kernel/c/%.obj: %.c $(HEADERS_C) arch/i686/isrs_gen.c
 	@mkdir -p $(@D)
 	@$(TARGET_CC) $(TARGET_CFLAGS) -c -o $@ $<
 	@echo "--> Compiled: " $<
 
-$(BUILD_DIR)/kernel/asm/%.obj: %.asm $(HEADERS_ASM)
+$(BUILD_DIR)/kernel/asm/%.obj: %.asm $(HEADERS_ASM) arch/i686/isrs_gen.inc
 	@mkdir -p $(@D)
 	@$(TARGET_ASM) $(TARGET_ASMFLAGS) -o $@ $<
 	@echo "--> Compiled: " $<

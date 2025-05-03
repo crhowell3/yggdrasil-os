@@ -14,3 +14,14 @@ i686_inb:
     xor eax, eax
     in al, dx
     ret
+
+global i686_Panic
+i686_Panic:
+    cli
+    hlt 
+
+global crash_me
+crash_me:
+    mov eax, 0
+    div eax
+    ret
