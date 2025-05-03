@@ -14,6 +14,7 @@ void __attribute__((section(".entry"))) start(uint16_t boot_drive) {
   clrscr();
 
   printf("Hello from the kernel!\n");
+  __asm("int $0x2");
 
 end:
   for (;;) {

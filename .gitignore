@@ -2,3 +2,4 @@ build/*
 *.ini
 *.err
 toolchain/*
+isrs_gen*
