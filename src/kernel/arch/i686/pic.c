@@ -107,9 +107,9 @@ void i686_PIC_Mask(int irq) {
   } else {
     irq -= 8;
     port = PIC2_DATA_PORT;
-    uint8_t mask = i686_inb(port);
-    i686_outb(port, mask | (1 << irq));
   }
+  uint8_t mask = i686_inb(port);
+  i686_outb(port, mask | (1 << irq));
 }
 
 void i686_PIC_Unmask(int irq) {
@@ -119,13 +119,19 @@ void i686_PIC_Unmask(int irq) {
   } else {
     irq -= 8;
     port = PIC2_DATA_PORT;
-    uint8_t mask = i686_inb(port);
-    i686_outb(port, mask & ~(1 << irq));
   }
+  uint8_t mask = i686_inb(port);
+  i686_outb(port, mask & ~(1 << irq));
 }
 
-uint16_t i686_PIC_GetIRQRequestRegister() {
+uint16_t i686_PIC_ReadIrqRequestRegister() {
     i686_outb(PIC1_COMMAND_PORT, PIC_CMD_READ_IRR);
     i686_outb(PIC2_COMMAND_PORT, PIC_CMD_READ_IRR);
-    return i686_inb(PIC2_COMMAND_PORT) | (i686_inb(PIC2_COMMAND_PORT) << 8);
+    return ((uint16_t)i686_inb(PIC2_COMMAND_PORT)) | (((uint16_t)i686_inb(PIC2_COMMAND_PORT)) << 8);
+}
+
+uint16_t i686_PIC_ReadInServiceRegister() {
+  i686_outb(PIC1_COMMAND_PORT, PIC_CMD_READ_ISR);
+  i686_outb(PIC2_COMMAND_PORT, PIC_CMD_READ_ISR);
+  return ((uint16_t)i686_inb(PIC2_COMMAND_PORT)) | (((uint16_t)i686_inb(PIC2_COMMAND_PORT)) << 8);
 }
