@@ -63,6 +63,8 @@ ebr_volume_id:              db 10h, 20h, 30h, 40h
 ebr_volume_label:           db 'PICOS      '        ; 11 bytes with padding
 ebr_system_id:              db 'FAT12   '           ; 8 bytes with padding
 
+times 90-($-$$) db 0
+
 ; =========
 ; Boot Code
 ; =========
@@ -89,121 +91,50 @@ start:
     mov si, msg_loading
     call puts
 
-    ; Read drive parameters
-    push es
-    mov ah, 08h
+    ; Check extensions present
+    mov ah, 0x41
+    mov bx, 0x55AA
+    stc
     int 13h
-    jc floppy_error
-    pop es
 
-    and cl, 0x3F
-    xor ch, ch
-    mov [bdb_sectors_per_track], cx
+    jc .no_disk_extensions
+    cmp bx, 0xAA55
+    jne .no_disk_extensions
 
-    inc dh
-    mov [bdb_heads], dh
+    ; Extensions are present
+    mov byte [have_extensions], 1
+    jmp .after_disk_extensions_check
 
-    ; Read FAT root dir
-    mov ax, [bdb_sectors_per_fat]
-    mov bl, [bdb_fat_count]
-    xor bh, bh
-    mul bx
-    add ax, [bdb_reserved_sectors]
-    push ax
+.no_disk_extensions:
+    mov byte [have_extensions], 0
 
-    mov ax, [bdb_dir_entries_count]
-    shl ax, 5
-    xor dx, dx
-    div word [bdb_bytes_per_sector]
+.after_disk_extensions_check:
+    ; Load Stage 2
+    mov si, stage2_location
 
-    test dx, dx
-    jz .root_dir_after
-    inc ax
+    mov ax, STAGE2_LOAD_SEGMENT
+    mov es, ax
 
-.root_dir_after:
-
-    ; Read root dir
-    mov cl, al
-    pop ax
-    mov dl, [ebr_drive_number]
-    mov bx, buffer
-    call disk_read
-
-    ; Search for stage2.bin
-    xor bx, bx
-    mov di, buffer
-
-.search_stage2:
-
-    mov si, file_stage2_bin
-    mov cx, 11
-    push di
-    repe cmpsb
-    pop di
-    je .found_stage2
-
-    add di, 32
-    inc bx
-    cmp bx, [bdb_dir_entries_count]
-    jl .search_stage2
-
-    jmp stage2_not_found_error
-
-.found_stage2:
-
-    mov ax, [di + 26]
-    mov [stage2_cluster], ax
-
-    ; Load FAT from disk into memory
-    mov ax, [bdb_reserved_sectors]
-    mov bx, buffer
-    mov cl, [bdb_sectors_per_fat]
-    mov dl, [ebr_drive_number]
-    call disk_read
-
-    ; Read stage2 and process FAT chain
-    mov bx, STAGE2_LOAD_SEGMENT
-    mov es, bx
     mov bx, STAGE2_LOAD_OFFSET
 
-.load_stage2_loop:
+.loop:
+    mov eax, [si]
+    add si, 4
+    mov cl, [si]
+    inc si
 
-    ; Read next cluster
-    mov ax, [stage2_cluster]
-    add ax, 31
-    mov cl, 1
-    mov dl, [ebr_drive_number]
+    cmp eax, 0
+    je .read_finish
+
     call disk_read
 
-    add bx, [bdb_bytes_per_sector]
+    xor ch, ch
+    shl cx, 5
+    mov di, es
+    add di, cx
+    mov es, di
 
-    ; Compute location of next cluster
-    mov ax, [stage2_cluster]
-    mov cx, 3
-    mul cx
-    mov cx, 2
-    div cx
-
-    mov si, buffer
-    add si, ax
-    mov ax, [ds:si]
-
-    or dx, dx
-    jz .even
-
-.odd:
-    shr ax, 4
-    jmp .next_cluster_after
-
-.even:
-    and ax, 0x0FFF
-
-.next_cluster_after:
-    cmp ax, 0x0FF8
-    jae .read_finish
-
-    mov [stage2_cluster], ax
-    jmp .load_stage2_loop
+    jmp .loop
 
 .read_finish:
 
@@ -217,7 +148,6 @@ start:
     jmp STAGE2_LOAD_SEGMENT:STAGE2_LOAD_OFFSET
 
     jmp wait_key_and_reboot
-
 
     cli
     hlt
@@ -319,18 +249,34 @@ lba_to_chs:
 ;   - es:bx: Memory address where the data will be stored
 ;
 disk_read:
-    push ax
+    push eax
     push bx
     push cx
     push dx
+    push si
     push di
 
-    push cx                             ; temporarily save cl
-    call lba_to_chs                     ; compute CHS position
-    pop ax                              ; al is the number of sectors to read
+    cmp byte [have_extensions], 1
+    jne .no_disk_extensions
 
-    mov ah, 02h                         ; reading may not work first time
-    mov di, 3                           ; number of times to retry
+    ; With extensions
+    mov [extensions_dap.lba], eax
+    mov [extensions_dap.segment], es
+    mov [extensions_dap.offset], bx
+    mov [extensions_dap.count], cl
+
+    mov ah, 0x42
+    mov si, extensions_dap
+    mov di, 3
+    jmp .retry
+
+.no_disk_extensions:
+    push cx
+    call lba_to_chs
+    pop ax
+
+    mov ah, 02h
+    mov di, 3
 
 .retry:
     pusha                               ; save all registers
@@ -355,10 +301,11 @@ disk_read:
     popa
 
     pop di
+    pop si
     pop dx
     pop cx
     pop bx
-    pop ax
+    pop eax
     ret
 
 ;
@@ -379,13 +326,23 @@ msg_loading:                db 'Loading...', ENDL, 0
 message_read_fail:          db 'Read from disk failed!', ENDL, 0
 msg_stage2_not_found:       db 'STAGE2.BIN file not found!', ENDL, 0
 file_stage2_bin:            db 'STAGE2  BIN'
-stage2_cluster:             dw 0
+
+have_extensions:            db 0
+extensions_dap:
+    .size:                  db 10h
+                            db 0
+    .count:                 dw 0
+    .offset:                dw 0
+    .segment:               dw 0
+    .lba:                   dq 0
 
 STAGE2_LOAD_SEGMENT         equ 0x0
 STAGE2_LOAD_OFFSET          equ 0x500
 
+times 510-30-($-$$) db 0
 
-times 510-($-$$) db 0
+stage2_location:            times 30 db 0
+
 dw 0AA55h
 
 buffer:

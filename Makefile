@@ -1,6 +1,6 @@
 include build_scripts/config.mk
 
-.PHONY: all floppy_image kernel bootloader clean always
+.PHONY: all floppy_image disk_image kernel bootloader clean always
 
 all: floppy_image
 
@@ -12,18 +12,17 @@ include build_scripts/toolchain.mk
 floppy_image: $(BUILD_DIR)/main_floppy.img
 
 $(BUILD_DIR)/main_floppy.img: bootloader kernel
-    # Create empty 1.44 MB file
-	@dd if=/dev/zero of=$@ bs=512 count=2880 > /dev/null
-    # Create FAT12 file system with a default label that will be overwritten
-	@mkfs.fat -F 12 -n "PICO" $@ > /dev/null
-    # Put bootloader into first sector of the disk with no truncation
-	@dd if=$(BUILD_DIR)/stage1.bin of=$@ conv=notrunc > /dev/null
-    # Copy files to image without needing to mount
-	@mcopy -i $@ $(BUILD_DIR)/stage2.bin "::stage2.bin"
-	@mcopy -i $@ $(BUILD_DIR)/kernel.bin "::kernel.bin"
-	@mcopy -i $@ test.txt "::test.txt"
-	@mmd -i $@ "::mydir"
-	@mcopy -i $@ test.txt "::mydir/test.txt"
+	@./build_scripts/make_floppy_img.sh $@
+	@echo "--> Created: " $@
+
+#
+# Disk image
+#
+disk_image: $(BUILD_DIR)/main_disk.raw
+
+$(BUILD_DIR)/main_disk.raw: bootloader kernel
+	@./build_scripts/make_disk_img.sh $@ $(MAKE_DISK_SIZE)
+	@echo "--> Created: " $@
 
 #
 # Bootloader
