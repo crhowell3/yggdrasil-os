@@ -1,6 +1,0 @@
-megs: 128
-mouse: enabled=0
-display_library: x, options="gui_debug"
-ata0-master: type=disk, path="build/main_disk.raw", heads=32, spt=63
-
-boot: disk

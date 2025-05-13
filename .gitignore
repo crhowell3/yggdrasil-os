@@ -3,3 +3,5 @@ build/*
 *.err
 toolchain/*
 isrs_gen*
+.sconsign.dblite
+__pycache__/
