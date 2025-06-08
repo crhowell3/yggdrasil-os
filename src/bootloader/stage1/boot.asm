@@ -1,6 +1,4 @@
-org 0x7C00
 bits 16
-
 
 %define ENDL 0x0D, 0x0A
 
@@ -28,8 +26,12 @@ bits 16
 ; 0x1C:  Number of hidden sectors
 ; 0x20:  The large sector count
 
-jmp short start
-nop
+section .fsjump
+
+    jmp short start
+    nop
+
+section .fsheaders
 
 bdb_oem:                    db 'MSWIN4.1'           ; 8 bytes
 bdb_bytes_per_sector:       dw 512
@@ -63,286 +65,290 @@ ebr_volume_id:              db 10h, 20h, 30h, 40h
 ebr_volume_label:           db 'PICOS      '        ; 11 bytes with padding
 ebr_system_id:              db 'FAT12   '           ; 8 bytes with padding
 
-times 90-($-$$) db 0
-
 ; =========
 ; Boot Code
 ; =========
 
-start:
-    ; Data segments
-    mov ax, 0
-    mov ds, ax
-    mov es, ax
+section .entry
+    global start
+    
+    start:
+        ; Data segments
+        mov ax, 0
+        mov ds, ax
+        mov es, ax
 
-    ; Stack memory initialized at start of OS
-    mov ss, ax
-    mov sp, 0x7C00
+        ; Stack memory initialized at start of OS
+        mov ss, ax
+        mov sp, 0x7C00
 
-    push es
-    push word .after
-    retf
+        push es
+        push word .after
+        retf
 
-.after:
+    .after:
 
-    mov [ebr_drive_number], dl
+        mov [ebr_drive_number], dl
 
-    ; Print string to terminal
-    mov si, msg_loading
-    call puts
+        ; Print string to terminal
+        mov si, msg_loading
+        call puts
 
-    ; Check extensions present
-    mov ah, 0x41
-    mov bx, 0x55AA
-    stc
-    int 13h
+        ; Check extensions present
+        mov ah, 0x41
+        mov bx, 0x55AA
+        stc
+        int 13h
 
-    jc .no_disk_extensions
-    cmp bx, 0xAA55
-    jne .no_disk_extensions
+        jc .no_disk_extensions
+        cmp bx, 0xAA55
+        jne .no_disk_extensions
 
-    ; Extensions are present
-    mov byte [have_extensions], 1
-    jmp .after_disk_extensions_check
+        ; Extensions are present
+        mov byte [have_extensions], 1
+        jmp .after_disk_extensions_check
 
-.no_disk_extensions:
-    mov byte [have_extensions], 0
+    .no_disk_extensions:
+        mov byte [have_extensions], 0
 
-.after_disk_extensions_check:
-    ; Load Stage 2
-    mov si, stage2_location
+    .after_disk_extensions_check:
+        ; Load Stage 2
+        mov si, stage2_location
 
-    mov ax, STAGE2_LOAD_SEGMENT
-    mov es, ax
+        mov ax, STAGE2_LOAD_SEGMENT
+        mov es, ax
 
-    mov bx, STAGE2_LOAD_OFFSET
+        mov bx, STAGE2_LOAD_OFFSET
 
-.loop:
-    mov eax, [si]
-    add si, 4
-    mov cl, [si]
-    inc si
+    .loop:
+        mov eax, [si]
+        add si, 4
+        mov cl, [si]
+        inc si
 
-    cmp eax, 0
-    je .read_finish
+        cmp eax, 0
+        je .read_finish
 
-    call disk_read
+        call disk_read
 
-    xor ch, ch
-    shl cx, 5
-    mov di, es
-    add di, cx
-    mov es, di
+        xor ch, ch
+        shl cx, 5
+        mov di, es
+        add di, cx
+        mov es, di
 
-    jmp .loop
+        jmp .loop
 
-.read_finish:
+    .read_finish:
 
-    ; Boot device in dl
-    mov dl, [ebr_drive_number]
+        ; Boot device in dl
+        mov dl, [ebr_drive_number]
 
-    mov ax, STAGE2_LOAD_SEGMENT
-    mov ds, ax
-    mov es, ax
+        mov ax, STAGE2_LOAD_SEGMENT
+        mov ds, ax
+        mov es, ax
 
-    jmp STAGE2_LOAD_SEGMENT:STAGE2_LOAD_OFFSET
+        jmp STAGE2_LOAD_SEGMENT:STAGE2_LOAD_OFFSET
 
-    jmp wait_key_and_reboot
+        jmp wait_key_and_reboot
 
-    cli
-    hlt
+        cli
+        hlt
 
-; ==============
-; Error handling
-; ==============
+section .text
+    ; ==============
+    ; Error handling
+    ; ==============
 
-floppy_error:
-    mov si, message_read_fail
-    call puts
-    jmp wait_key_and_reboot
+    floppy_error:
+        mov si, message_read_fail
+        call puts
+        jmp wait_key_and_reboot
 
-stage2_not_found_error:
-    mov si, msg_stage2_not_found
-    call puts
-    jmp wait_key_and_reboot
+    stage2_not_found_error:
+        mov si, msg_stage2_not_found
+        call puts
+        jmp wait_key_and_reboot
 
-wait_key_and_reboot:
-    mov ah, 0
-    int 16h                                 ; Interrupt code for waiting for user keypress
-    jmp 0FFFFh:0                            ; This jumps to the beginning of the BIOS to initiate reboot
+    wait_key_and_reboot:
+        mov ah, 0
+        int 16h                                 ; Interrupt code for waiting for user keypress
+        jmp 0FFFFh:0                            ; This jumps to the beginning of the BIOS to initiate reboot
 
-.halt:
-    cli
-    hlt
+    .halt:
+        cli
+        hlt
 
-;
-; Prints a string to terminal
-; Params:
-;   - ds:si points to the string
-;
-puts:
-    push si
-    push ax
-    push bx
+    ;
+    ; Prints a string to terminal
+    ; Params:
+    ;   - ds:si points to the string
+    ;
+    puts:
+        push si
+        push ax
+        push bx
 
-.loop:
-    lodsb
-    or al, al
-    jz .done
+    .loop:
+        lodsb
+        or al, al
+        jz .done
 
-    mov ah, 0x0E
-    mov bh, 0
-    int 0x10
+        mov ah, 0x0E
+        mov bh, 0
+        int 0x10
 
-    jmp .loop
+        jmp .loop
 
-.done:
-    pop bx
-    pop ax
-    pop si
-    ret
+    .done:
+        pop bx
+        pop ax
+        pop si
+        ret
 
-; =============
-; Disk routines
-; =============
+    ; =============
+    ; Disk routines
+    ; =============
 
-;
-; Convert LBA address to CHS address
-; Parameters:
-;   - ax: LBA address
-; Returns:
-;   - cx [bits 0-5]: sector number
-;   - cx [bits 6-15]: cylinder / track
-;   - dh: head
-;
+    ;
+    ; Convert LBA address to CHS address
+    ; Parameters:
+    ;   - ax: LBA address
+    ; Returns:
+    ;   - cx [bits 0-5]: sector number
+    ;   - cx [bits 6-15]: cylinder / track
+    ;   - dh: head
+    ;
 
-lba_to_chs:
+    lba_to_chs:
 
-    push ax
-    push dx
+        push ax
+        push dx
 
-    xor dx, dx
-    div word [bdb_sectors_per_track]
+        xor dx, dx
+        div word [bdb_sectors_per_track]
 
-    inc dx
-    mov cx, dx
+        inc dx
+        mov cx, dx
 
-    xor dx, dx
-    div word [bdb_heads]
+        xor dx, dx
+        div word [bdb_heads]
 
-    mov dh, dl
-    mov ch, al
-    shl ah, 6
-    or cl, ah
+        mov dh, dl
+        mov ch, al
+        shl ah, 6
+        or cl, ah
 
-    pop ax
-    mov dl, al
-    pop ax
-    ret
+        pop ax
+        mov dl, al
+        pop ax
+        ret
 
-;
-; Read sectors from a disk
-; Parameters:
-;   - ax: LBA address
-;   - cl: Number of sectors to read
-;   - dl: Drive number
-;   - es:bx: Memory address where the data will be stored
-;
-disk_read:
-    push eax
-    push bx
-    push cx
-    push dx
-    push si
-    push di
+    ;
+    ; Read sectors from a disk
+    ; Parameters:
+    ;   - ax: LBA address
+    ;   - cl: Number of sectors to read
+    ;   - dl: Drive number
+    ;   - es:bx: Memory address where the data will be stored
+    ;
+    disk_read:
+        push eax
+        push bx
+        push cx
+        push dx
+        push si
+        push di
 
-    cmp byte [have_extensions], 1
-    jne .no_disk_extensions
+        cmp byte [have_extensions], 1
+        jne .no_disk_extensions
 
-    ; With extensions
-    mov [extensions_dap.lba], eax
-    mov [extensions_dap.segment], es
-    mov [extensions_dap.offset], bx
-    mov [extensions_dap.count], cl
+        ; With extensions
+        mov [extensions_dap.lba], eax
+        mov [extensions_dap.segment], es
+        mov [extensions_dap.offset], bx
+        mov [extensions_dap.count], cl
 
-    mov ah, 0x42
-    mov si, extensions_dap
-    mov di, 3
-    jmp .retry
+        mov ah, 0x42
+        mov si, extensions_dap
+        mov di, 3
+        jmp .retry
 
-.no_disk_extensions:
-    push cx
-    call lba_to_chs
-    pop ax
+    .no_disk_extensions:
+        push cx
+        call lba_to_chs
+        pop ax
 
-    mov ah, 02h
-    mov di, 3
+        mov ah, 02h
+        mov di, 3
 
-.retry:
-    pusha                               ; save all registers
-    stc                                 ; manually set carry flag
-    int 13h                             ; carry flag cleared indicates success
-    jnc .done
+    .retry:
+        pusha                               ; save all registers
+        stc                                 ; manually set carry flag
+        int 13h                             ; carry flag cleared indicates success
+        jnc .done
 
-    ; Execute this if read fails
-    popa
-    call disk_reset
+        ; Execute this if read fails
+        popa
+        call disk_reset
 
-    dec di
-    test di, di
-    jnz .retry
+        dec di
+        test di, di
+        jnz .retry
 
-.fail:
-    ; Jump and halt because it is assumed that the disk cannot be read from
-    ; since all attempts have been exhausted
-    jmp floppy_error
+    .fail:
+        ; Jump and halt because it is assumed that the disk cannot be read from
+        ; since all attempts have been exhausted
+        jmp floppy_error
 
-.done:
-    popa
+    .done:
+        popa
 
-    pop di
-    pop si
-    pop dx
-    pop cx
-    pop bx
-    pop eax
-    ret
+        pop di
+        pop si
+        pop dx
+        pop cx
+        pop bx
+        pop eax
+        ret
 
-;
-; Reset the disk controller
-; Parameters:
-;   - dl: Drive number
-;
-disk_reset:
-    pusha
-    mov ah, 0
-    stc
-    int 13h
-    jc floppy_error
-    popa
-    ret
+    ;
+    ; Reset the disk controller
+    ; Parameters:
+    ;   - dl: Drive number
+    ;
+    disk_reset:
+        pusha
+        mov ah, 0
+        stc
+        int 13h
+        jc floppy_error
+        popa
+        ret
 
-msg_loading:                db 'Loading...', ENDL, 0
-message_read_fail:          db 'Read from disk failed!', ENDL, 0
-msg_stage2_not_found:       db 'STAGE2.BIN file not found!', ENDL, 0
-file_stage2_bin:            db 'STAGE2  BIN'
+section .rodata
 
-have_extensions:            db 0
-extensions_dap:
-    .size:                  db 10h
-                            db 0
-    .count:                 dw 0
-    .offset:                dw 0
-    .segment:               dw 0
-    .lba:                   dq 0
+    msg_loading:                db 'Loading...', ENDL, 0
+    message_read_fail:          db 'Read from disk failed!', ENDL, 0
+    msg_stage2_not_found:       db 'STAGE2.BIN file not found!', ENDL, 0
+    file_stage2_bin:            db 'STAGE2  BIN'
 
-STAGE2_LOAD_SEGMENT         equ 0x0
-STAGE2_LOAD_OFFSET          equ 0x500
+section .data
+    have_extensions:            db 0
+    extensions_dap:
+        .size:                  db 10h
+                                db 0
+        .count:                 dw 0
+        .offset:                dw 0
+        .segment:               dw 0
+        .lba:                   dq 0
 
-times 510-30-($-$$) db 0
+    STAGE2_LOAD_SEGMENT         equ 0x0
+    STAGE2_LOAD_OFFSET          equ 0x500
 
-stage2_location:            times 30 db 0
+section .data
+    global stage2_location
+    stage2_location:            times 30 db 0
 
-dw 0AA55h
-
-buffer:
+section .bss
+    buffer:                     resb 512

@@ -1,3 +1,4 @@
+#!/usr/bin/bash
 DEPS_DEBIAN=(
     build-essential
     bison 
